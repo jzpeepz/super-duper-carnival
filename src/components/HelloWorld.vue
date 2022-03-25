@@ -1,58 +1,116 @@
 <template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
+  <div class="w-72 fixed top-16">
+    <Combobox v-model="selected">
+      <div class="relative mt-1">
+        <div
+          class="relative w-full text-left bg-white rounded-lg shadow-md cursor-default focus:outline-none focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-teal-300 focus-visible:ring-offset-2 sm:text-sm overflow-hidden"
+        >
+          <ComboboxInput
+            class="w-full border-none focus:ring-0 py-2 pl-3 pr-10 text-sm leading-5 text-gray-900"
+            :displayValue="(person) => person.name"
+            @change="query = $event.target.value"
+          />
+          <ComboboxButton
+            class="absolute inset-y-0 right-0 flex items-center pr-2"
+          >
+            <SelectorIcon class="w-5 h-5 text-gray-400" aria-hidden="true" />
+          </ComboboxButton>
+        </div>
+        <TransitionRoot
+          leave="transition ease-in duration-100"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+          @after-leave="query = ''"
+        >
+          <ComboboxOptions
+            class="absolute w-full py-1 mt-1 overflow-auto text-base bg-white rounded-md shadow-lg max-h-60 ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm"
+          >
+            <div
+              v-if="filteredPeople.length === 0 && query !== ''"
+              class="cursor-default select-none relative py-2 px-4 text-gray-700"
+            >
+              Nothing found.
+            </div>
+
+            <ComboboxOption
+              v-for="person in filteredPeople"
+              as="template"
+              :key="person.id"
+              :value="person"
+              v-slot="{ selected, active }"
+            >
+              <li
+                class="cursor-default select-none relative py-2 pl-10 pr-4"
+                :class="{
+                  'text-white bg-teal-600': active,
+                  'text-gray-900': !active,
+                }"
+              >
+                <span
+                  class="block truncate"
+                  :class="{ 'font-medium': selected, 'font-normal': !selected }"
+                >
+                  {{ person.name }}
+                </span>
+                <span
+                  v-if="selected"
+                  class="absolute inset-y-0 left-0 flex items-center pl-3"
+                  :class="{ 'text-white': active, 'text-teal-600': !active }"
+                >
+                  <CheckIcon class="w-5 h-5" aria-hidden="true" />
+                </span>
+              </li>
+            </ComboboxOption>
+          </ComboboxOptions>
+        </TransitionRoot>
+      </div>
+    </Combobox>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'HelloWorld',
-  props: {
-    msg: String
-  }
-}
-</script>
+<script setup>
+import { ref, computed, watch } from 'vue'
+import {
+  Combobox,
+  ComboboxInput,
+  ComboboxButton,
+  ComboboxOptions,
+  ComboboxOption,
+  TransitionRoot,
+} from '@headlessui/vue'
+import { CheckIcon, SelectorIcon } from '@heroicons/vue/solid'
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-h3 {
-  margin: 40px 0 0;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
-}
-</style>
+const people = [
+  { id: 1, name: 'Arkanas', abbr: 'AR' },
+  { id: 2, name: 'Alaska', abbr: 'AL' },
+  { id: 3, name: 'Arizona', abbr: 'AZ' },
+  { id: 4, name: 'Delaware', abbr: 'DE' },
+  { id: 5, name: 'Texas', abbr: 'TX' },
+  { id: 6, name: 'Missouri', abbr: 'MO' },
+]
+
+let selected = ref(people[0])
+let query = ref('')
+let address = ref({
+  address1: '',
+  address2: '',
+  city: '',
+  state: '',
+  zip: ''
+});
+
+let filteredPeople = computed(() =>
+  query.value === ''
+    ? people
+    : people.filter((person) =>
+        person.name
+          .toLowerCase()
+          .replace(/\s+/g, '')
+          .includes(query.value.toLowerCase().replace(/\s+/g, ''))
+      )
+)
+
+watch(selected, async (newSelected) => {
+  address.value.state = newSelected.abbr;
+})
+</script>
